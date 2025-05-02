@@ -5,8 +5,8 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from datetime import datetime
-import pdfkit
 import os
+import requests
 
 valores_estimados = {}  # ✅ Inicializar variable global
 
@@ -423,6 +423,8 @@ def detalle_mi_cotizacion(idcotizacion):
 
     return render_template('detalle_mi_cotizacion.html', cabecera=cabecera, detalles=detalles)
 
+# ...
+
 @app.route('/descargar_pdf/<int:idcotizacion>')
 def descargar_pdf(idcotizacion):
     if 'idusuario' not in session:
@@ -453,13 +455,27 @@ def descargar_pdf(idcotizacion):
         flash("Cotización no encontrada.", "warning")
         return redirect(url_for('home'))
 
+    # Render HTML del PDF
     html = render_template('cotizacion_pdf.html', cabecera=cabecera, detalles=detalles)
-    config = pdfkit.configuration(wkhtmltopdf='./wkhtmltopdf')  # Cambiado para Linux Azure
-    pdf = pdfkit.from_string(html, False, configuration=config)
 
+    # Enviar a PDFShift
+    pdfshift_api_key = 'sk_5a155314ce9b4bc1e181c641226dcd2d9ff49e68'  # ← Reemplaza con tu clave real de https://pdfshift.io
+    response = requests.post(
+        'https://api.pdfshift.io/v3/convert/html',
+        auth=(pdfshift_api_key, ''),
+        json={"source": html}
+    )
+
+    if response.status_code != 200:
+        flash("Error al generar el PDF.", "danger")
+        return redirect(url_for('home'))
+
+    # Devolver PDF al navegador
+    pdf = response.content
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename=Cotizacion_{idcotizacion}.pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename="Cotizacion_{idcotizacion}.pdf"'
+
     return response
 
 # ------------------- REGISTRO DE BLUEPRINT -------------------
