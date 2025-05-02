@@ -177,6 +177,10 @@
         }
       }
     });
+    // ✅ Al cargar la página, actualiza todos los totales con los valores de mano de obra actuales
+    etapas.forEach(etapa => {
+      actualizarTotal(etapa);
+    });
   });
 </script>
 {% endblock %}
