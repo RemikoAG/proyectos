@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from datetime import datetime
 import os
 import requests
-
+import base64
 # Force redeploy - clean build
 
 
@@ -466,10 +466,15 @@ def descargar_pdf(idcotizacion):
     html = render_template('cotizacion_pdf.html', cabecera=cabecera, detalles=detalles)
 
     # Enviar a PDFShift
-    pdfshift_api_key = 'sk_5a155314ce9b4bc1e181c641226dcd2d9ff49e68'  # ← Reemplaza con tu clave real de https://pdfshift.io
+    api_key = 'sk_5a155314ce9b4bc1e181c641226dcd2d9ff49e68'
+    auth_header = base64.b64encode(f'api:{api_key}'.encode()).decode()
+    
     response = requests.post(
         'https://api.pdfshift.io/v3/convert/pdf',
-        auth=(pdfshift_api_key, ''),
+        headers={
+            'Authorization': f'Basic {auth_header}',
+            'Content-Type': 'application/json'
+        },
         json={"source": html}
     )
 
