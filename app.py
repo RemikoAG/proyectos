@@ -468,10 +468,11 @@ def descargar_pdf(idcotizacion):
     # Enviar a PDFShift
     pdfshift_api_key = 'sk_5a155314ce9b4bc1e181c641226dcd2d9ff49e68'  # ← Reemplaza con tu clave real de https://pdfshift.io
     response = requests.post(
-        'https://api.pdfshift.io/v3/convert/html',
+        'https://api.pdfshift.io/v3/convert',
         auth=(pdfshift_api_key, ''),
         json={"source": html}
     )
+
 
     if response.status_code != 200:
        print("❌ Error al generar PDF:", response.status_code)
