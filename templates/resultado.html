@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Resultados de la Cotización{% endblock %}
+
+{% block content %}
+<h2>Resumen de la Cotización por Etapas</h2>
+
+<form method="POST" action="{{ url_for('guardar_cotizacion') }}">
+  <table border="1" cellspacing="0" cellpadding="10">
+    <thead>
+      <tr>
+        <th>Etapas de Construcción</th>
+        <th>Materiales (S/)</th>
+        <th>Mano de Obra (S/)</th>
+        <th>Costo Total (S/)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set etapas = ['acero', 'cimentacion', 'muro', 'columna', 'viga', 'techo'] %}
+      {% set nombres_etapas = {
+        'acero': 'Armado de Acero para Columna',
+        'cimentacion': 'Vaciado de Concreto para Cimentación y Zapata',
+        'muro': 'Levantamiento de Muro',
+        'columna': 'Vaciado para Columna',
+        'viga': 'Armado para Viga y Techo',
+        'techo': 'Vaciado de Viga y Techo'
+      } %}
+      {% set materiales_por_etapa = {
+        'acero': ['acero_columna'],
+        'cimentacion': ['cemento_cimentacion', 'arena_cimentacion', 'grava_cimentacion'],
+        'muro': ['cemento_muro', 'ladrillo_muro', 'arena_muro'],
+        'columna': ['cemento_columna', 'arena_columna', 'grava_columna'],
+        'viga': ['acero_viga', 'ladrillo_techo'],
+        'techo': ['cemento_techo', 'arena_techo', 'grava_techo']
+      } %}
+
+      {% for etapa in etapas %}
+        {% set idx = loop.index0 %}
+        <tr>
+          <td>{{ nombres_etapas[etapa] }}</td>
+          <td id="materiales_{{ etapa }}">S/ {{ "%.2f"|format(costos_etapas[idx]) }}</td>
+          <td>
+            <input type="number" min="0" step="0.01" name="mano_obra_{{ etapa }}" id="mano_obra_{{ etapa }}" value="0"
+                   onchange="actualizarTotal('{{ etapa }}')">
+          </td>
+          <td id="total_{{ etapa }}">S/ {{ "%.2f"|format(costos_etapas[idx]) }}</td>
+        </tr>
+        {% for mat in materiales_por_etapa[etapa] %}
+          <input type="hidden" name="material_{{ mat }}" value="{{ "%.2f"|format(costos[mat]) }}">
+          <input type="hidden" name="cantidad_{{ mat }}" value="{{ cantidades[mat] }}">
+        {% endfor %}
+      {% endfor %}
+
+      <tr>
+        <th>Total General</th>
+        <th colspan="2"></th>
+        <th id="total_general">S/ {{ "%.2f"|format(total) }}</th>
+      </tr>
+    </tbody>
+  </table>
+
+  <input type="hidden" id="input_total_general" name="total_general" value="{{ "%.2f"|format(total) }}">
+
+  <div style="text-align: center; margin-top: 30px;">
+    <div style="display: inline-flex; gap: 20px; flex-wrap: wrap;">
+      <button type="submit" class="btn-principal">Guardar Cotización</button>
+  
+      {% if cotizacion_guardada %}
+        <a id="btn_pdf" class="btn-principal" 
+           href="{{ url_for('descargar_pdf', idcotizacion=ultimo_idcotizacion|default(0)) }}">
+          Exportar en PDF
+        </a>
+      {% else %}
+        <button id="btn_pdf" class="btn-principal" disabled style="opacity: 0.5; cursor: not-allowed;">
+          Exportar en PDF
+        </button>
+      {% endif %}
+    </div>
+  </div>
+  
+</form>
+
+<br>
+<h2>Gráfico de Inversión por Etapas</h2>
+
+<div class="chart-container">
+  <canvas id="graficoEtapas"></canvas>
+</div>
+
+
+<br>
+<a href="{{ url_for('cotizacion') }}">← Volver a Cotización</a>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  let chart;
+  const etapas = ['acero', 'cimentacion', 'muro', 'columna', 'viga', 'techo'];
+  const materiales = {{ costos_etapas | tojson }};
+  const totales = [...materiales];
+
+  function actualizarTotal(etapa) {
+    const idx = etapas.indexOf(etapa);
+    const mo = parseFloat(document.getElementById(`mano_obra_${etapa}`).value) || 0;
+    const totalEtapa = materiales[idx] + mo;
+    document.getElementById(`total_${etapa}`).innerText = 'S/ ' + totalEtapa.toFixed(2);
+    totales[idx] = totalEtapa;
+    recalcularTotalGeneral();
+    actualizarGrafico();
+  }
+
+  function recalcularTotalGeneral() {
+    const suma = totales.reduce((a, b) => a + b, 0);
+    document.getElementById("total_general").innerText = 'S/ ' + suma.toFixed(2);
+    document.getElementById("input_total_general").value = suma.toFixed(2);
+  }
+
+  function actualizarGrafico() {
+    chart.data.datasets[0].data = totales;
+    chart.update();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('graficoEtapas').getContext('2d');
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [
+          'Armado de Acero para Columna',
+          'Vaciado de Concreto para Cimentación y Zapata',
+          'Levantamiento de Muro',
+          'Vaciado para Columna',
+          'Armado para Viga y Techo',
+          'Vaciado de Viga y Techo'
+        ],
+        datasets: [{
+          label: 'Costo por Etapa (S/)',
+          data: totales,
+          backgroundColor: 'rgba(54, 162, 235, 0.6)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `S/ ${ctx.parsed.y.toFixed(2)}`
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: value => 'S/ ' + value
+            }
+          }
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

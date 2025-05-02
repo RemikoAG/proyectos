@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Nuevo Usuario{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <h2>Registrar Nuevo Usuario</h2>
+
+  {% with mensajes = get_flashed_messages(with_categories=true) %}
+    {% if mensajes %}
+      {% for categoria, mensaje in mensajes %}
+        <div class="flash-message flash-{{ categoria }}">{{ mensaje }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('auth.registrar_usuario') }}">
+    <label for="idusuario">ID de Usuario:</label>
+    <input type="text" name="idusuario" id="idusuario" required>
+
+    <label for="nombres">Nombres:</label>
+    <input type="text" name="nombres" id="nombres" required>
+
+    <label for="apellidos">Apellidos:</label>
+    <input type="text" name="apellidos" id="apellidos" required>
+
+    <label for="rol">Rol:</label>
+    <select name="rol" id="rol" required>
+      <option value="usuario">Usuario</option>
+      <option value="admin">Administrador</option>
+    </select>
+
+    <label for="contrasena">Contraseña:</label>
+    <div style="position: relative;">
+      <input type="password" name="contrasena" id="contrasena" required>
+      <span class="toggle-password" onclick="togglePassword('contrasena')"></span>
+    </div>
+
+    <label for="confirmar_contrasena">Confirmar Contraseña:</label>
+    <div style="position: relative;">
+      <input type="password" name="confirmar_contrasena" id="confirmar_contrasena" required>
+      <span class="toggle-password" onclick="togglePassword('confirmar_contrasena')"></span>
+    </div>
+
+    <button type="submit" class="submit-button">Registrar Usuario</button>
+  </form>
+</div>
+
+<script>
+  function togglePassword(idCampo) {
+    const campo = document.getElementById(idCampo);
+    campo.type = campo.type === "password" ? "text" : "password";
+  }
+</script>
+{% endblock %}

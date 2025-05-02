@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cotización en PDF</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .datos {
+            margin-bottom: 20px;
+        }
+        .datos p {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        table, th, td {
+            border: 1px solid #333;
+        }
+        th {
+            background-color: #e0e0e0;
+            text-align: center;
+            padding: 6px;
+        }
+        td {
+            padding: 6px;
+            text-align: center;
+        }
+        .total {
+            font-weight: bold;
+            font-size: 15px;
+            text-align: right;
+        }
+        .fila-suma {
+            font-weight: bold;
+        }
+
+        /* Colores por etapa */
+        .acero { background-color: #ffffff; }
+        .cimentacion { background-color: #ffffff; }
+        .muro { background-color: #ffffff; }
+        .columna { background-color: #ffffff; }
+        .viga { background-color: #ffffff; }
+        .techo { background-color: #ffffff; }
+
+        /* Color combinado para filas de suma */
+        .acero.fila-suma td { background-color: #ffffff; }
+        .cimentacion.fila-suma td { background-color: #ffffff; }
+        .muro.fila-suma td { background-color: #ffffff; }
+        .columna.fila-suma td { background-color: #ffffff; }
+        .viga.fila-suma td { background-color: #ffffff; }
+        .techo.fila-suma td { background-color: #ffffff; }
+    </style>
+</head>
+<body>
+
+<h1>Resumen de Cotización</h1>
+
+<div class="datos">
+    <p><strong>Nº Cotización:</strong> {{ cabecera.idcotizacion }}</p>
+    <p><strong>Usuario:</strong> {{ cabecera.nombres }} {{ cabecera.apellidos }} ({{ cabecera.idusuario }})</p>
+    <p><strong>Fecha:</strong> {{ cabecera.fecha.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Etapa</th>
+            <th>Material</th>
+            <th>Cantidad</th>
+            <th>Costo Estimado (S/)</th>
+            <th>Mano de Obra (S/)</th>
+            <th>Total Etapa (S/)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% set nombres_etapas = {
+            'acero': 'Armado de Acero para Columna',
+            'cimentacion': 'Vaciado de Concreto para Cimentación y Zapata',
+            'muro': 'Levantamiento de Muro',
+            'columna': 'Vaciado para Columna',
+            'viga': 'Armado para Viga y Techo',
+            'techo': 'Vaciado de Viga y Techo'
+        } %}
+
+        {% set nombres_materiales = {
+            'acero_columna': 'Acero 9 metros 1/2 pulgada',
+            'acero_viga': 'Acero 9 metros 1/2 pulgada',
+            'cemento_cimentacion': 'Cemento Pacasmayo Rojo',
+            'cemento_muro': 'Cemento Pacasmayo Rojo',
+            'cemento_columna': 'Cemento Pacasmayo Rojo',
+            'cemento_techo': 'Cemento Pacasmayo Rojo',
+            'arena_cimentacion': 'Arena Gruesa',
+            'arena_muro': 'Arena Gruesa',
+            'arena_columna': 'Arena Gruesa',
+            'arena_techo': 'Arena Gruesa',
+            'grava_cimentacion': 'Grava 1/2',
+            'grava_columna': 'Grava 1/2',
+            'grava_techo': 'Grava 1/2',
+            'ladrillo_muro': 'Ladrillo 18 Huecos',
+            'ladrillo_techo': 'Ladrillo Techo Hueco 15x30x30'
+        } %}
+
+        {% set unidades = {
+            'acero_columna': 'barrillas',
+            'acero_viga': 'barrillas',
+            'cemento_cimentacion': 'bolsa',
+            'cemento_muro': 'bolsa',
+            'cemento_columna': 'bolsa',
+            'cemento_techo': 'bolsa',
+            'arena_cimentacion': 'm³',
+            'arena_muro': 'm³',
+            'arena_columna': 'm³',
+            'arena_techo': 'm³',
+            'grava_cimentacion': 'm³',
+            'grava_columna': 'm³',
+            'grava_techo': 'm³',
+            'ladrillo_muro': 'millar',
+            'ladrillo_techo': 'unidad'
+        } %}
+
+        {% set etapas = ['acero', 'cimentacion', 'muro', 'columna', 'viga', 'techo'] %}
+        {% set total_general = namespace(valor=0) %}
+
+        {% for etapa in etapas %}
+            {% set suma = namespace(material=0, mano_obra=0) %}
+            {% set etapa_detalles = detalles | selectattr('etapa', 'equalto', etapa.capitalize()) | list %}
+            {% for d in etapa_detalles %}
+                {% set suma.material = suma.material + d.costo_estimado %}
+                {% if loop.index == 1 %}
+                    {% set suma.mano_obra = d.mano_obra or 0 %}
+                {% endif %}
+                <tr class="{{ etapa }}">
+                    <td>{{ nombres_etapas[etapa] }}</td>
+                    <td>{{ nombres_materiales[d.material] if d.material in nombres_materiales else d.material }}</td>
+                    <td>{{ d.cantidad }} {{ unidades[d.material] if d.material in unidades else '' }}</td>
+                    <td>S/ {{ "%.2f"|format(d.costo_estimado) }}</td>
+                    <td>{% if loop.index == 1 %}S/ {{ "%.2f"|format(d.mano_obra or 0) }}{% else %}–{% endif %}</td>
+                    <td>–</td>
+                </tr>
+            {% endfor %}
+            {% set total_etapa = suma.material + suma.mano_obra %}
+            {% set total_general.valor = total_general.valor + total_etapa %}
+            <tr class="{{ etapa }} fila-suma">
+                <td colspan="3">Total {{ nombres_etapas[etapa] }}</td>
+                <td>S/ {{ "%.2f"|format(suma.material) }}</td>
+                <td>S/ {{ "%.2f"|format(suma.mano_obra) }}</td>
+                <td>S/ {{ "%.2f"|format(total_etapa) }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="5" class="total">Total General:</td>
+            <td class="total">S/ {{ "%.2f"|format(total_general.valor) }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+</body>
+</html>

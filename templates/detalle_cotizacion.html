@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de Cotización{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <h2>📝 Detalle de Cotización</h2>
+
+  <div class="admin-box">
+    <p><strong>ID Cotización:</strong> {{ cabecera.idcotizacion }}</p>
+
+    {% if session.get('rol') == 'admin' %}
+      <p><strong>Usuario:</strong> {{ cabecera.nombres }} {{ cabecera.apellidos }} ({{ cabecera.idusuario }})</p>
+    {% endif %}
+
+    <p><strong>Fecha:</strong> {{ cabecera.fecha.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+    <p><strong>Total General:</strong> S/ {{ "%.2f"|format(cabecera.total_general) }}</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Etapa</th>
+        <th>Material</th>
+        <th>Cantidad</th>
+        <th>Costo Estimado</th>
+        <th>Mano de Obra</th>
+        <th>Total Etapa</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in detalles %}
+      <tr>
+        <td>{{ d.etapa }}</td>
+        <td>{{ d.material }}</td>
+        <td>{{ d.cantidad }}</td>
+        <td>S/ {{ "%.2f"|format(d.costo_estimado) }}</td>
+        <td>S/ {{ "%.2f"|format(d.mano_obra or 0) }}</td>
+        <td>S/ {{ "%.2f"|format(d.total_etapa) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="margin-top: 20px;">
+    {% if session.get('rol') == 'admin' %}
+      <a href="{{ url_for('historial_cotizaciones') }}" class="admin-link">← Volver al Historial</a>
+    {% elif session.get('rol') == 'usuario' %}
+      <a href="{{ url_for('mis_cotizaciones') }}" class="admin-link">← Volver a Mis Cotizaciones</a>
+    {% endif %}
+
+    <a href="{{ url_for('descargar_pdf', idcotizacion=cabecera.idcotizacion) }}" class="admin-link" style="margin-left: 20px;">
+      📥 Descargar en PDF
+    </a>
+  </div>
+</div>
+{% endblock %}

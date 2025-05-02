@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Cotizaciones{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <h2> Historial de Cotizaciones</h2>
+
+  {% if cotizaciones %}
+    <table>
+      <thead>
+        <tr>
+          <th>ID Cotización</th>
+          <th>Usuario</th>
+          <th>Fecha</th>
+          <th>Total (S/)</th>
+          <th>Detalle</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cotizaciones %}
+        <tr>
+          <td>{{ c.idcotizacion }}</td>
+          <td>{{ c.nombre_completo }}</td>
+          <td>{{ c.fecha.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>S/ {{ "%.2f"|format(c.total_general) }}</td>
+          <td>
+            <a href="{{ url_for('detalle_cotizacion', idcotizacion=c.idcotizacion) }}" class="btn-ver-detalle">
+              Ver Detalle
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No hay cotizaciones registradas aún.</p>
+  {% endif %}
+</div>
+{% endblock %}

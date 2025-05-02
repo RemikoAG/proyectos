@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Panel de Administración{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <h2>Panel de Administración</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="margin-bottom: 20px;">
+        {% for category, message in messages %}
+          <div class="flash-message flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="admin-box">
+    <h3> Entrenamiento del Modelo</h3>
+    <p>Última vez entrenado: <strong>{{ fecha_entrenamiento }}</strong></p>
+    <form action="{{ url_for('entrenar_manual') }}" method="get">
+      <button type="submit" class="admin-button">Reentrenar Modelo</button>
+    </form>
+  </div>
+
+  <div class="admin-box">
+    <h3> Gestión de Usuarios</h3>
+    <a href="{{ url_for('gestionar_usuarios') }}" class="admin-link">Ver / Activar / Desactivar Usuarios</a>
+  </div>
+
+  <div class="admin-box">
+    <h3> Cotizaciones Realizadas</h3>
+    <a href="{{ url_for('historial_cotizaciones') }}" class="admin-link">Ver Historial General</a>
+  </div>
+
+  <div class="admin-box">
+    <h3> Registrar Nuevo Usuario</h3>
+    <a href="{{ url_for('auth.registrar_usuario') }}" class="admin-link">Ir al Formulario de Registro</a>
+  </div>
+
+  <div style="text-align: center; margin-top: 40px;">
+    <a href="{{ url_for('auth.logout') }}" class="admin-button" style="background-color: #dc3545;">Cerrar Sesión</a>
+  </div>
+</div>
+{% endblock %}

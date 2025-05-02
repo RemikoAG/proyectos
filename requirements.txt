@@ -1,0 +1,6 @@
+Flask==3.1.0
+gunicorn==23.0.0
+pyodbc==5.0.1
+pandas==2.2.2
+scikit-learn==1.4.2
+pdfkit==1.0.0

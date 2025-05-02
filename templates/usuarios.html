@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block content %}
+  <div class="admin-container">
+    <h2>👤 Gestión de Usuarios Registrados</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID de Usuario</th>
+          <th>Apellidos</th>
+          <th>Nombres</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for usuario in usuarios %}
+          <tr>
+            <td>{{ usuario[0] }}</td>
+            <td>{{ usuario[2] }}</td>
+            <td>{{ usuario[1] }}</td>
+            <td>{{ usuario[3] | capitalize }}</td>
+            <td>
+              <span class="{{ 'estado-activo' if usuario[4] == 1 else 'estado-inactivo' }}">
+                {{ 'Activo' if usuario[4] == 1 else 'Inactivo' }}
+              </span>
+            </td>
+            <td>
+              <form action="{{ url_for('cambiar_estado_usuario', idusuario=usuario[0]) }}" method="POST">
+                <label class="switch">
+                  <input type="checkbox" onchange="this.form.submit()" {% if usuario[4] == 1 %}checked{% endif %}>
+                  <span class="slider round"></span>
+                </label>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <br>
+    <a href="{{ url_for('admin_panel') }}" class="admin-link">← Volver al Panel de Administración</a>
+  </div>
+{% endblock %}

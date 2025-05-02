@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Cotización por Etapas del Proyecto{% endblock %}
+
+{% block content %}
+<h1>Formulario de Cotización</h1>
+
+<form id="formularioCotizacion" action="{{ url_for('cotizacion') }}" method="POST" onsubmit="return validarFormulario();">
+  {% set datos = datos if datos is defined else {} %}
+  <div class="accordion-container">
+    {% set etapas = [
+      {'id': 'acero_columna', 'titulo': 'Armado de Acero para Columna', 'campos': [{'label': 'Cantidad de Acero (1/2 pulg. - 9 mts)', 'name': 'acero_columna'}]},
+      {'id': 'cimentacion', 'titulo': 'Vaciado de Concreto para Cimentación y Zapata', 'campos': [
+        {'label': 'Cantidad de Cemento (bolsas - Rojo)', 'name': 'cemento_cimentacion'},
+        {'label': 'Cantidad de Arena (m³)', 'name': 'arena_cimentacion'},
+        {'label': 'Cantidad de Grava (m³)', 'name': 'grava_cimentacion'}
+      ]},
+      {'id': 'muro', 'titulo': 'Levantamiento de Muro', 'campos': [
+        {'label': 'Cantidad de Cemento (bolsas - Rojo)', 'name': 'cemento_muro'},
+        {'label': 'Cantidad de Ladrillo ( king kong 18 huecos - millar)', 'name': 'ladrillo_muro'},
+        {'label': 'Cantidad de Arena (m³)', 'name': 'arena_muro'}
+      ]},
+      {'id': 'columna', 'titulo': 'Vaciado para Columna', 'campos': [
+        {'label': 'Cantidad de Cemento (bolsas - Rojo)', 'name': 'cemento_columna'},
+        {'label': 'Cantidad de Arena (m³)', 'name': 'arena_columna'},
+        {'label': 'Cantidad de Grava (m³)', 'name': 'grava_columna'}
+      ]},
+      {'id': 'viga', 'titulo': 'Armado para Viga y Techo', 'campos': [
+        {'label': 'Cantidad de Acero  (1/2 pulg. - 9 mts)', 'name': 'acero_viga'},
+        {'label': 'Cantidad de Ladrillo de Techo (15x30x30)', 'name': 'ladrillo_techo'}
+      ]},
+      {'id': 'techo', 'titulo': 'Vaciado de Viga y Techo', 'campos': [
+        {'label': 'Cantidad de Cemento (bolsas - Rojo)', 'name': 'cemento_techo'},
+        {'label': 'Cantidad de Arena (m³)', 'name': 'arena_techo'},
+        {'label': 'Cantidad de Grava (m³)', 'name': 'grava_techo'}
+      ]}
+    ] %}
+
+    {% for etapa in etapas %}
+    <div class="accordion">
+      <button type="button" class="accordion-header" onclick="toggleAccordion('{{ etapa.id }}')">
+        {{ etapa.titulo }}
+      </button>
+      <div class="accordion-body" id="{{ etapa.id }}" style="display: none;">
+        {% for campo in etapa.campos %}
+          <label for="{{ campo.name }}">{{ campo.label }}:</label>
+          <input
+            type="number"
+            name="{{ campo.name }}"
+            id="{{ campo.name }}"
+            min="0"
+            step="any"
+            value="{{ datos[campo.name] if campo.name in datos else '' }}"
+          ><br>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <br>
+  <button type="submit" class="submit-button">Calcular Cotización</button>
+</form>
+
+<script>
+  function toggleAccordion(id) {
+    document.querySelectorAll('.accordion-body').forEach(div => {
+      if (div.id === id) {
+        div.style.display = (div.style.display === 'block') ? 'none' : 'block';
+      } else {
+        div.style.display = 'none';
+      }
+    });
+  }
+
+  function validarFormulario() {
+    const etapas = {
+      acero_columna: ['acero_columna'],
+      cimentacion: ['cemento_cimentacion', 'arena_cimentacion', 'grava_cimentacion'],
+      muro: ['cemento_muro', 'ladrillo_muro', 'arena_muro'],
+      columna: ['cemento_columna', 'arena_columna', 'grava_columna'],
+      viga: ['acero_viga', 'ladrillo_techo'],
+      techo: ['cemento_techo', 'arena_techo', 'grava_techo']
+    };
+
+    let algunoLleno = false;
+
+    for (const [etapa, campos] of Object.entries(etapas)) {
+      let llenos = campos.filter(campo => {
+        const valor = document.getElementById(campo).value.trim();
+        return valor !== "" && valor !== "0";
+      });
+
+      if (llenos.length > 0 && llenos.length < campos.length) {
+        alert(`⚠️ Completa todos los campos de la etapa: ${etapa.replace("_", " ").toUpperCase()}`);
+        return false;
+      }
+
+      if (llenos.length > 0) {
+        algunoLleno = true;
+      }
+    }
+
+    if (!algunoLleno) {
+      alert("⚠️ Debes llenar al menos una etapa para calcular la cotización.");
+      return false;
+    }
+
+    return true;
+  }
+
+  // Mostrar acordeón con datos si hubo error
+  window.onload = () => {
+    const datos = {{ datos | tojson | safe }};
+    Object.keys(datos).forEach(nombre => {
+      const input = document.getElementById(nombre);
+      if (input) {
+        const div = input.closest('.accordion-body');
+        if (div) div.style.display = 'block';
+      }
+    });
+  };
+</script>
+{% endblock %}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Sistema de Cotización{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+  <!-- Encabezado siempre visible -->
+  <header>
+    <div class="header-container">
+      <h1>Sistema de Cotización de Proyectos de Construcción</h1>
+
+      <!-- Botones visibles solo si no estás en login -->
+      {% if request.endpoint not in ['auth.login', 'home'] %}
+      <nav class="nav-button-bar">
+        {% if session.get('idusuario') %}
+          <a href="{{ url_for('home') }}" class="nav-btn">Inicio</a>
+          <a href="{{ url_for('cotizacion') }}" class="nav-btn">Cotización</a>
+          {% if session.get('rol') == 'admin' %}
+            <a href="{{ url_for('admin_panel') }}" class="nav-btn">Panel Admin</a>
+            <a href="{{ url_for('gestionar_usuarios') }}" class="nav-btn">Usuarios</a>
+          {% endif %}
+          <a href="{{ url_for('auth.logout') }}" class="nav-btn">Cerrar sesión</a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="nav-btn">Iniciar sesión</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+    </div>
+    <hr>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  {% if request.endpoint != 'auth.login' %}
+  <footer>
+    <hr>
+    <p style="text-align: center;">&copy; 2025 Sistema de Cotización - Todos los derechos reservados</p>
+  </footer>
+  {% endif %}
+
+</body>
+</html>
