@@ -1,8 +1,4 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
-
-name: Build and deploy Python app to Azure Web App - cotizacionwebapp
+name: Build and deploy Docker image to Azure Web App - cotizacionwebapp
 
 on:
   push:
@@ -11,71 +7,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read #This is required for actions/checkout
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Set up Python version
-        uses: actions/setup-python@v5
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v1
         with:
-          python-version: '3.10'
+          login-server: <TU_REGISTRO>.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Create and start virtual environment
+      - name: Build and push Docker image
         run: |
-          python -m venv venv
-          source venv/bin/activate
-      
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
+          docker build -t <TU_REGISTRO>.azurecr.io/cotizacionwebapp:latest .
+          docker push <TU_REGISTRO>.azurecr.io/cotizacionwebapp:latest
 
-      - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
-
-      - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            release.zip
-            !venv/
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
-
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
-
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
-
-      
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4027C148DAD64A5AA8DFFD0D74E615AB }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_14A842865E844EB38111C9184C626286 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E8DEE0A9009D4CD1A4F781AD051910C3 }}
-
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
         with:
           app-name: 'cotizacionwebapp'
-          slot-name: 'Production'
-          
+          images: '<TU_REGISTRO>.azurecr.io/cotizacionwebapp:latest'
