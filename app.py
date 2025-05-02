@@ -506,10 +506,11 @@ def resultado_cotizacion():
     for d in detalles:
         etapa_key = d.etapa.lower()
         if etapa_key in totales_materiales_por_etapa:
-            totales_materiales_por_etapa[etapa_key] += d.costo_estimado
-        costos[d.material] = d.costo_estimado
-        cantidades[d.material] = d.cantidad
-        total_general += d.total_etapa
+            totales_materiales_por_etapa[etapa_key] += float(d.costo_estimado)
+        costos[d.material] = float(d.costo_estimado)
+        cantidades[d.material] = int(d.cantidad)
+        total_general += float(d.total_etapa)
+
 
     costos_etapas = [round(totales_materiales_por_etapa[etapa], 2) for etapa in etapas]
 
