@@ -5,6 +5,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from datetime import datetime
 import pdfkit
+import os
 
 valores_estimados = {}  # ✅ Inicializar variable global
 
@@ -12,16 +13,10 @@ app = Flask(__name__)
 app.secret_key = 'clave_secreta_para_sesiones'
 
 # ------------------- CONEXIÓN A SQL SERVER -------------------
-conexion = pyodbc.connect(
-    'DRIVER={ODBC Driver 17 for SQL Server};'
-    'SERVER=tcp:cotizacionapp.database.windows.net,1433;'
-    'DATABASE=cotizacion;'
-    'UID=remikoadmin;'
-    'PWD=FCBchampions95;'
-    'Encrypt=yes;'
-    'TrustServerCertificate=no;'
-    'Connection Timeout=30;'
-)
+
+conexion = pyodbc.connect(os.environ["AZURE_SQL_CONNECTION"])
+
+
 
 # ------------------- ENTRENAMIENTO MODELO (por material) -------------------
 def entrenar_modelo():
@@ -430,4 +425,4 @@ app.register_blueprint(auth_bp)
 
 # ------------------- RUN -------------------
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
