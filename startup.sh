@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Dar permisos de ejecución al binario wkhtmltopdf
-chmod 755 /home/site/wwwroot/wkhtmltopdf
+# Dar permisos de ejecución al binario wkhtmltopdf si está en la raíz del proyecto
+chmod 755 ./wkhtmltopdf
 
-# Agregar la ruta al PATH
+# Exportar la ruta del ejecutable para que pdfkit lo encuentre
 export PATH=$PATH:/home/site/wwwroot
 
-# Iniciar la aplicación
+# Ejecutar la aplicación con gunicorn
 gunicorn app:app --bind=0.0.0.0 --timeout 300
