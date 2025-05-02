@@ -15,6 +15,10 @@ valores_estimados = {}  # ✅ Inicializar variable global
 
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_para_sesiones'
+# 👇 Esto asegura que la sesión no se pierda en HTTPS (como en Azure)
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
 
 # ------------------- CONEXIÓN A SQL SERVER -------------------
 
@@ -251,7 +255,7 @@ def guardar_cotizacion():
             costos_etapas.append(round(suma, 2))
             total_general += suma
 # ✅ Enviar datos al resultado.html para re-render y permitir exportar PDF
-    # Guardar el ID en sesión para que lo use /resultado
+
 # Guardar el ID en sesión para que lo use /resultado
         session['cotizacion_guardada'] = True
         session['ultimo_idcotizacion'] = idcotizacion
@@ -428,6 +432,8 @@ def detalle_mi_cotizacion(idcotizacion):
 
 @app.route('/descargar_pdf/<int:idcotizacion>')
 def descargar_pdf(idcotizacion):
+    print("👉 Entrando a /descargar_pdf")
+    print("👤 Usuario en sesión:", session.get('idusuario'))
     if 'idusuario' not in session:
         flash("Debes iniciar sesión para descargar.", "danger")
         return redirect(url_for('home'))
