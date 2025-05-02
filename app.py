@@ -250,16 +250,14 @@ def guardar_cotizacion():
 
             costos_etapas.append(round(suma, 2))
             total_general += suma
+# ✅ Enviar datos al resultado.html para re-render y permitir exportar PDF
+    # Guardar el ID en sesión para que lo use /resultado
+# Guardar el ID en sesión para que lo use /resultado
+        session['cotizacion_guardada'] = True
+        session['ultimo_idcotizacion'] = idcotizacion
+        return redirect(url_for('resultado_cotizacion'))
 
-    # ✅ Enviar datos al resultado.html para re-render y permitir exportar PDF
-    flash(" Cotización guardada correctamente.", "success")
-    return render_template("resultado.html",
-                           costos=costos,
-                           cantidades=cantidades,
-                           total=round(total_general, 2),
-                           costos_etapas=costos_etapas,
-                           cotizacion_guardada=True,
-                           ultimo_idcotizacion=idcotizacion)
+
 
 # ------------------- ADMIN PANEL Y FUNCIONES -------------------
 @app.route('/admin')
@@ -480,6 +478,48 @@ def descargar_pdf(idcotizacion):
     response.headers['Content-Disposition'] = f'attachment; filename="Cotizacion_{idcotizacion}.pdf"'
 
     return response
+
+
+@app.route('/resultado')
+def resultado_cotizacion():
+    if 'idusuario' not in session or 'ultimo_idcotizacion' not in session:
+        return redirect(url_for('home'))
+
+    idcotizacion = session['ultimo_idcotizacion']
+    with engine.connect() as conn:
+        detalles = conn.execute(
+            text("""
+                SELECT etapa, material, cantidad, costo_estimado, mano_obra, total_etapa
+                FROM detalle_cotizacion
+                WHERE idcotizacion = :id
+            """),
+            {"id": idcotizacion}
+        ).fetchall()
+
+    # Etapas definidas en orden
+    etapas = ['acero', 'cimentacion', 'muro', 'columna', 'viga', 'techo']
+    costos = {}
+    cantidades = {}
+    totales_materiales_por_etapa = {etapa: 0.0 for etapa in etapas}
+    total_general = 0.0
+
+    for d in detalles:
+        etapa_key = d.etapa.lower()
+        if etapa_key in totales_materiales_por_etapa:
+            totales_materiales_por_etapa[etapa_key] += d.costo_estimado
+        costos[d.material] = d.costo_estimado
+        cantidades[d.material] = d.cantidad
+        total_general += d.total_etapa
+
+    costos_etapas = [round(totales_materiales_por_etapa[etapa], 2) for etapa in etapas]
+
+    return render_template("resultado.html",
+                           costos=costos,
+                           cantidades=cantidades,
+                           total=round(total_general, 2),
+                           costos_etapas=costos_etapas,
+                           cotizacion_guardada=True,
+                           ultimo_idcotizacion=idcotizacion)
 
 # ------------------- REGISTRO DE BLUEPRINT -------------------
 from auth import auth_bp

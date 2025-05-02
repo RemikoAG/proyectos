@@ -40,8 +40,10 @@
           <td>{{ nombres_etapas[etapa] }}</td>
           <td id="materiales_{{ etapa }}">S/ {{ "%.2f"|format(costos_etapas[idx]) }}</td>
           <td>
-            <input type="number" min="0" step="0.01" name="mano_obra_{{ etapa }}" id="mano_obra_{{ etapa }}" value="0"
-                   onchange="actualizarTotal('{{ etapa }}')">
+            <input type="number" min="0" step="0.01" name="mano_obra_{{ etapa }}" id="mano_obra_{{ etapa }}"
+                   value="{{ request.form['mano_obra_' + etapa] if request.form.get('mano_obra_' + etapa) else '0' }}"
+                   onchange="actualizarTotal('{{ etapa }}'); deshabilitarBotonPDF();">
+
           </td>
           <td id="total_{{ etapa }}">S/ {{ "%.2f"|format(costos_etapas[idx]) }}</td>
         </tr>
@@ -66,15 +68,16 @@
       <button type="submit" class="btn-principal">Guardar Cotización</button>
   
       {% if cotizacion_guardada %}
-        <a id="btn_pdf" class="btn-principal" 
-           href="{{ url_for('descargar_pdf', idcotizacion=ultimo_idcotizacion|default(0)) }}">
-          Exportar en PDF
+       <a id="btn_pdf" class="btn-principal" 
+          href="{{ url_for('descargar_pdf', idcotizacion=ultimo_idcotizacion|default(0)) }}">
+         Exportar en PDF
         </a>
       {% else %}
         <button id="btn_pdf" class="btn-principal" disabled style="opacity: 0.5; cursor: not-allowed;">
           Exportar en PDF
         </button>
       {% endif %}
+
     </div>
   </div>
   
@@ -119,6 +122,19 @@
     chart.data.datasets[0].data = totales;
     chart.update();
   }
+  function deshabilitarBotonPDF() {
+  const boton = document.getElementById("btn_pdf");
+  if (boton && boton.tagName === "A") {
+    const nuevoBoton = document.createElement("button");
+    nuevoBoton.className = "btn-principal";
+    nuevoBoton.disabled = true;
+    nuevoBoton.style.opacity = "0.5";
+    nuevoBoton.style.cursor = "not-allowed";
+    nuevoBoton.innerText = "Exportar en PDF";
+    boton.parentNode.replaceChild(nuevoBoton, boton);
+  }
+}
+
 
   document.addEventListener('DOMContentLoaded', () => {
     const ctx = document.getElementById('graficoEtapas').getContext('2d');
