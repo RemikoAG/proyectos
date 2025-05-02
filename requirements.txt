@@ -4,3 +4,4 @@ pyodbc==4.0.34
 pandas==2.2.2
 scikit-learn==1.4.2
 pdfkit==1.0.0
+bcrypt==4.1.2
