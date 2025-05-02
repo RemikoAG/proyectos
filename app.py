@@ -8,6 +8,9 @@ from datetime import datetime
 import os
 import requests
 
+# Force redeploy - clean build
+
+
 valores_estimados = {}  # ✅ Inicializar variable global
 
 app = Flask(__name__)
