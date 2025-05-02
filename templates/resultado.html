@@ -41,7 +41,7 @@
           <td id="materiales_{{ etapa }}">S/ {{ "%.2f"|format(costos_etapas[idx]) }}</td>
           <td>
             <input type="number" min="0" step="0.01" name="mano_obra_{{ etapa }}" id="mano_obra_{{ etapa }}"
-                   value="{{ request.form['mano_obra_' + etapa] if request.form.get('mano_obra_' + etapa) else '0' }}"
+                   value="{{ mano_obras[etapa] if mano_obras and etapa in mano_obras else 0 }}"
                    onchange="actualizarTotal('{{ etapa }}'); deshabilitarBotonPDF();">
 
           </td>
@@ -131,8 +131,7 @@
     nuevoBoton.style.opacity = "0.5";
     nuevoBoton.style.cursor = "not-allowed";
     nuevoBoton.innerText = "Exportar en PDF";
-    boton.parentNode.replaceChild(nuevoBoton, boton);
-  }
+    boton.parentNode.replaceChild(nuevoBoton, boton);}
 }
 
 

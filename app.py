@@ -496,21 +496,21 @@ def resultado_cotizacion():
             {"id": idcotizacion}
         ).fetchall()
 
-    # Etapas definidas en orden
     etapas = ['acero', 'cimentacion', 'muro', 'columna', 'viga', 'techo']
     costos = {}
     cantidades = {}
     totales_materiales_por_etapa = {etapa: 0.0 for etapa in etapas}
+    mano_obras = {etapa: 0.0 for etapa in etapas}
     total_general = 0.0
 
     for d in detalles:
         etapa_key = d.etapa.lower()
         if etapa_key in totales_materiales_por_etapa:
             totales_materiales_por_etapa[etapa_key] += float(d.costo_estimado)
+            mano_obras[etapa_key] = float(d.mano_obra)
         costos[d.material] = float(d.costo_estimado)
         cantidades[d.material] = int(d.cantidad)
         total_general += float(d.total_etapa)
-
 
     costos_etapas = [round(totales_materiales_por_etapa[etapa], 2) for etapa in etapas]
 
@@ -520,7 +520,8 @@ def resultado_cotizacion():
                            total=round(total_general, 2),
                            costos_etapas=costos_etapas,
                            cotizacion_guardada=True,
-                           ultimo_idcotizacion=idcotizacion)
+                           ultimo_idcotizacion=idcotizacion,
+                           mano_obras=mano_obras)
 
 # ------------------- REGISTRO DE BLUEPRINT -------------------
 from auth import auth_bp
