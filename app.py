@@ -454,7 +454,7 @@ def descargar_pdf(idcotizacion):
         return redirect(url_for('home'))
 
     html = render_template('cotizacion_pdf.html', cabecera=cabecera, detalles=detalles)
-    config = pdfkit.configuration(wkhtmltopdf='/home/site/wwwroot/wkhtmltopdf') # Cambiado para Linux Azure
+    config = pdfkit.configuration(wkhtmltopdf='./wkhtmltopdf')  # Cambiado para Linux Azure
     pdf = pdfkit.from_string(html, False, configuration=config)
 
     response = make_response(pdf)
