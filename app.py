@@ -474,8 +474,11 @@ def descargar_pdf(idcotizacion):
     )
 
     if response.status_code != 200:
-        flash("Error al generar el PDF.", "danger")
-        return redirect(url_for('home'))
+       print("❌ Error al generar PDF:", response.status_code)
+       print("🔍 Respuesta:", response.text)
+       flash("Error al generar el PDF. Revisa la clave de API o el contenido HTML.", "danger")
+       return redirect(url_for('home'))
+
 
     # Devolver PDF al navegador
     pdf = response.content
