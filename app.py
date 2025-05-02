@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, make_response
-import pyodbc
+from sqlalchemy import create_engine
+from sqlalchemy import text
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
@@ -14,7 +15,8 @@ app.secret_key = 'clave_secreta_para_sesiones'
 
 # ------------------- CONEXIÓN A SQL SERVER -------------------
 
-conexion = pyodbc.connect(os.environ["AZURE_SQL_CONNECTION"])
+connection_string = os.environ["AZURE_SQL_CONNECTION"]
+engine = create_engine(connection_string)
 
 
 
@@ -22,7 +24,7 @@ conexion = pyodbc.connect(os.environ["AZURE_SQL_CONNECTION"])
 def entrenar_modelo():
     global valores_estimados, ultima_fecha_entrenamiento
     query = "SELECT idmaterial, preciounitario FROM costos"
-    df = pd.read_sql_query(query, conexion)
+    df = pd.read_sql_query(query, engine)
 
     if df.empty:
         print("⚠️ No hay datos en la tabla costos")
@@ -182,13 +184,6 @@ def guardar_cotizacion():
     datos = request.form.to_dict()
 
     total_general = float(datos.get('total_general', 0))
-    cursor = conexion.cursor()
-    cursor.execute("""
-    INSERT INTO cotizaciones (idusuario, fecha, total_general)
-    OUTPUT INSERTED.idcotizacion
-    VALUES (?, GETDATE(), ?)
-                   """, (idusuario, total_general))
-    idcotizacion = cursor.fetchone()[0]
 
     materiales_por_etapa = {
         'acero': ['acero_columna'],
@@ -204,28 +199,54 @@ def guardar_cotizacion():
     costos_etapas = []
     total_general = 0
 
-    for etapa, materiales in materiales_por_etapa.items():
-        suma = 0
-        for material in materiales:
-            cantidad = obtener_entero(datos.get(f'cantidad_{material}', 0))
-            costo_estimado = float(datos.get(f'material_{material}', 0))
-            mano_obra = float(datos.get(f'mano_obra_' + etapa, 0))
-            total_etapa = costo_estimado + mano_obra
-            etapa_nombre = etapa.replace("_", " ").title()
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("""
+                INSERT INTO cotizaciones (idusuario, fecha, total_general)
+                OUTPUT INSERTED.idcotizacion
+                VALUES (:idusuario, GETDATE(), :total_general)
+            """),
+            {"idusuario": idusuario, "total_general": total_general}
+        )
+        idcotizacion = result.fetchone()[0]
 
-            cursor.execute("""
-                INSERT INTO detalle_cotizacion (idcotizacion, etapa, material, cantidad, costo_estimado, mano_obra, total_etapa)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (idcotizacion, etapa_nombre, material, cantidad, costo_estimado, mano_obra, total_etapa))
+        for etapa, materiales in materiales_por_etapa.items():
+            suma = 0
+            for material in materiales:
+                cantidad = obtener_entero(datos.get(f'cantidad_{material}', 0))
+                costo_estimado = float(datos.get(f'material_{material}', 0))
+                mano_obra = float(datos.get(f'mano_obra_' + etapa, 0))
+                total_etapa = costo_estimado + mano_obra
+                etapa_nombre = etapa.replace("_", " ").title()
 
-            suma += costo_estimado
-            costos[material] = costo_estimado
-            cantidades[material] = cantidad
+                conn.execute(
+                    text("""
+                        INSERT INTO detalle_cotizacion (
+                            idcotizacion, etapa, material, cantidad,
+                            costo_estimado, mano_obra, total_etapa
+                        )
+                        VALUES (
+                            :idcotizacion, :etapa, :material, :cantidad,
+                            :costo_estimado, :mano_obra, :total_etapa
+                        )
+                    """),
+                    {
+                        "idcotizacion": idcotizacion,
+                        "etapa": etapa_nombre,
+                        "material": material,
+                        "cantidad": cantidad,
+                        "costo_estimado": costo_estimado,
+                        "mano_obra": mano_obra,
+                        "total_etapa": total_etapa
+                    }
+                )
 
-        costos_etapas.append(round(suma, 2))
-        total_general += suma
+                suma += costo_estimado
+                costos[material] = costo_estimado
+                cantidades[material] = cantidad
 
-    conexion.commit()
+            costos_etapas.append(round(suma, 2))
+            total_general += suma
 
     # ✅ Enviar datos al resultado.html para re-render y permitir exportar PDF
     flash(" Cotización guardada correctamente.", "success")
@@ -263,9 +284,14 @@ def gestionar_usuarios():
         flash("Acceso restringido.", "warning")
         return redirect(url_for('home'))
 
-    cursor = conexion.cursor()
-    cursor.execute("SELECT idusuario, nombres, apellidos, rol, activo FROM usuarios WHERE idusuario != 'admin'")
-    usuarios = cursor.fetchall()
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT idusuario, nombres, apellidos, rol, activo 
+            FROM usuarios 
+            WHERE idusuario != 'admin'
+        """))
+        usuarios = result.fetchall()
+
     return render_template('usuarios.html', usuarios=usuarios)
 
 @app.route('/admin/cambiar_estado/<idusuario>', methods=['POST'])
@@ -274,18 +300,22 @@ def cambiar_estado_usuario(idusuario):
         flash("No autorizado.", "danger")
         return redirect(url_for('home'))
 
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("SELECT activo FROM usuarios WHERE idusuario = :idusuario"),
+            {"idusuario": idusuario}
+        )
+        estado_actual = result.fetchone()
 
-    cursor = conexion.cursor()
-    cursor.execute("SELECT activo FROM usuarios WHERE idusuario = ?", (idusuario,))
-    estado_actual = cursor.fetchone()
-
-    if estado_actual:
-        nuevo_estado = 0 if estado_actual[0] == 1 else 1
-        cursor.execute("UPDATE usuarios SET activo = ? WHERE idusuario = ?", (nuevo_estado, idusuario))
-        conexion.commit()
-        flash(f" Estado del usuario '{idusuario}' actualizado correctamente.", "success")
-    else:
-        flash(" Usuario no encontrado.", "danger")
+        if estado_actual:
+            nuevo_estado = 0 if estado_actual[0] == 1 else 1
+            conn.execute(
+                text("UPDATE usuarios SET activo = :estado WHERE idusuario = :idusuario"),
+                {"estado": nuevo_estado, "idusuario": idusuario}
+            )
+            flash(f" Estado del usuario '{idusuario}' actualizado correctamente.", "success")
+        else:
+            flash(" Usuario no encontrado.", "danger")
 
     return redirect(url_for('gestionar_usuarios'))
 
@@ -295,15 +325,15 @@ def historial_cotizaciones():
         flash("Acceso restringido al administrador.", "danger")
         return redirect(url_for('home'))
 
-    cursor = conexion.cursor()
-    cursor.execute("""
-        SELECT c.idcotizacion, c.fecha, c.total_general,
-               u.nombres + ' ' + u.apellidos AS nombre_completo
-        FROM cotizaciones c
-        JOIN usuarios u ON c.idusuario = u.idusuario
-        ORDER BY c.fecha DESC
-    """)
-    cotizaciones = cursor.fetchall()
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT c.idcotizacion, c.fecha, c.total_general,
+                   u.nombres + ' ' + u.apellidos AS nombre_completo
+            FROM cotizaciones c
+            JOIN usuarios u ON c.idusuario = u.idusuario
+            ORDER BY c.fecha DESC
+        """))
+        cotizaciones = result.fetchall()
 
     return render_template('historial_cotizaciones.html', cotizaciones=cotizaciones)
 
@@ -313,29 +343,31 @@ def detalle_cotizacion(idcotizacion):
         flash("Acceso restringido.", "danger")
         return redirect(url_for('home'))
 
-    cursor = conexion.cursor()
-    cursor.execute("""
-        SELECT c.idcotizacion, c.fecha, c.total_general, u.nombres, u.apellidos, u.idusuario
-        FROM cotizaciones c
-        JOIN usuarios u ON c.idusuario = u.idusuario
-        WHERE c.idcotizacion = ?
-    """, (idcotizacion,))
-    cabecera = cursor.fetchone()
+    with engine.connect() as conn:
+        cabecera = conn.execute(
+            text("""
+                SELECT c.idcotizacion, c.fecha, c.total_general, u.nombres, u.apellidos, u.idusuario
+                FROM cotizaciones c
+                JOIN usuarios u ON c.idusuario = u.idusuario
+                WHERE c.idcotizacion = :id
+            """),
+            {"id": idcotizacion}
+        ).fetchone()
 
-    if not cabecera:
-        flash("Cotización no encontrada.", "warning")
-        return redirect(url_for('historial_cotizaciones'))
+        if not cabecera:
+            flash("Cotización no encontrada.", "warning")
+            return redirect(url_for('historial_cotizaciones'))
 
-    cursor.execute("""
-        SELECT etapa, material, cantidad, costo_estimado, mano_obra, total_etapa
-        FROM detalle_cotizacion
-        WHERE idcotizacion = ?
-    """, (idcotizacion,))
-    detalles = cursor.fetchall()
+        detalles = conn.execute(
+            text("""
+                SELECT etapa, material, cantidad, costo_estimado, mano_obra, total_etapa
+                FROM detalle_cotizacion
+                WHERE idcotizacion = :id
+            """),
+            {"id": idcotizacion}
+        ).fetchall()
 
     return render_template('detalle_cotizacion.html', cabecera=cabecera, detalles=detalles)
-
-
 
 # ------------------- HISTORIAL Y PDF -------------------
 @app.route('/mis_cotizaciones')
@@ -345,14 +377,18 @@ def mis_cotizaciones():
         return redirect(url_for('home'))
 
     idusuario = session['idusuario']
-    cursor = conexion.cursor()
-    cursor.execute("""
-        SELECT idcotizacion, fecha, total_general
-        FROM cotizaciones
-        WHERE idusuario = ?
-        ORDER BY fecha DESC
-    """, (idusuario,))
-    cotizaciones = cursor.fetchall()
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("""
+                SELECT idcotizacion, fecha, total_general
+                FROM cotizaciones
+                WHERE idusuario = :idusuario
+                ORDER BY fecha DESC
+            """),
+            {"idusuario": idusuario}
+        )
+        cotizaciones = result.fetchall()
+
     return render_template('mis_cotizaciones.html', cotizaciones=cotizaciones)
 
 @app.route('/detalle_mi_cotizacion/<int:idcotizacion>')
@@ -362,24 +398,28 @@ def detalle_mi_cotizacion(idcotizacion):
         return redirect(url_for('home'))
 
     idusuario = session['idusuario']
-    cursor = conexion.cursor()
-    cursor.execute("""
-        SELECT idcotizacion, fecha, total_general
-        FROM cotizaciones
-        WHERE idcotizacion = ? AND idusuario = ?
-    """, (idcotizacion, idusuario))
-    cabecera = cursor.fetchone()
+    with engine.connect() as conn:
+        cabecera = conn.execute(
+            text("""
+                SELECT idcotizacion, fecha, total_general
+                FROM cotizaciones
+                WHERE idcotizacion = :id AND idusuario = :idusuario
+            """),
+            {"id": idcotizacion, "idusuario": idusuario}
+        ).fetchone()
 
-    if not cabecera:
-        flash("Cotización no encontrada.", "warning")
-        return redirect(url_for('mis_cotizaciones'))
+        if not cabecera:
+            flash("Cotización no encontrada.", "warning")
+            return redirect(url_for('mis_cotizaciones'))
 
-    cursor.execute("""
-        SELECT etapa, material, cantidad, costo_estimado, mano_obra, total_etapa
-        FROM detalle_cotizacion
-        WHERE idcotizacion = ?
-    """, (idcotizacion,))
-    detalles = cursor.fetchall()
+        detalles = conn.execute(
+            text("""
+                SELECT etapa, material, cantidad, costo_estimado, mano_obra, total_etapa
+                FROM detalle_cotizacion
+                WHERE idcotizacion = :id
+            """),
+            {"id": idcotizacion}
+        ).fetchall()
 
     return render_template('detalle_mi_cotizacion.html', cabecera=cabecera, detalles=detalles)
 
@@ -389,35 +429,38 @@ def descargar_pdf(idcotizacion):
         flash("Debes iniciar sesión para descargar.", "danger")
         return redirect(url_for('home'))
 
-    cursor = conexion.cursor()
-    cursor.execute("""
-        SELECT c.idcotizacion, c.fecha, c.total_general, u.idusuario, u.nombres, u.apellidos
-        FROM cotizaciones c
-        JOIN usuarios u ON c.idusuario = u.idusuario
-        WHERE c.idcotizacion = ?
-    """, (idcotizacion,))
-    cabecera = cursor.fetchone()
+    with engine.connect() as conn:
+        cabecera = conn.execute(
+            text("""
+                SELECT c.idcotizacion, c.fecha, c.total_general, u.idusuario, u.nombres, u.apellidos
+                FROM cotizaciones c
+                JOIN usuarios u ON c.idusuario = u.idusuario
+                WHERE c.idcotizacion = :id
+            """),
+            {"id": idcotizacion}
+        ).fetchone()
 
-    cursor.execute("""
-        SELECT etapa, material, cantidad, costo_estimado, mano_obra, total_etapa
-        FROM detalle_cotizacion
-        WHERE idcotizacion = ?
-    """, (idcotizacion,))
-    detalles = cursor.fetchall()
+        detalles = conn.execute(
+            text("""
+                SELECT etapa, material, cantidad, costo_estimado, mano_obra, total_etapa
+                FROM detalle_cotizacion
+                WHERE idcotizacion = :id
+            """),
+            {"id": idcotizacion}
+        ).fetchall()
 
     if not cabecera:
         flash("Cotización no encontrada.", "warning")
         return redirect(url_for('home'))
 
     html = render_template('cotizacion_pdf.html', cabecera=cabecera, detalles=detalles)
-    config = pdfkit.configuration(wkhtmltopdf='C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
+    config = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')  # Cambiado para Linux Azure
     pdf = pdfkit.from_string(html, False, configuration=config)
 
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'attachment; filename=Cotizacion_{idcotizacion}.pdf'
     return response
-
 
 # ------------------- REGISTRO DE BLUEPRINT -------------------
 from auth import auth_bp

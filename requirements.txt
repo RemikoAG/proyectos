@@ -1,7 +1,8 @@
 Flask==3.1.0
 gunicorn==23.0.0
-pyodbc==4.0.34
 pandas==2.2.2
 scikit-learn==1.4.2
 pdfkit==1.0.0
 bcrypt==4.1.2
+sqlalchemy==2.0.29
+pymssql==2.2.8

@@ -1,15 +1,15 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from datetime import datetime
 import bcrypt
-import pyodbc
+from sqlalchemy import create_engine, text
+import os
 
 # Creamos el Blueprint
 auth_bp = Blueprint('auth', __name__)
 
 # Conexión a la base de datos
-conexion = pyodbc.connect(
-    "DRIVER={SQL Server};SERVER=DESKTOP-IS2KC0A\\SQLEXPRESS;DATABASE=cotizacion;Trusted_Connection=yes"
-)
+connection_string = os.environ["AZURE_SQL_CONNECTION"]
+engine = create_engine(connection_string)
 
 # 🔹 Ruta de Login
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -18,12 +18,16 @@ def login():
         idusuario = request.form['idusuario'].strip()
         contrasena = request.form['contrasena'].strip()
 
-        cursor = conexion.cursor()
-        cursor.execute("""
-            SELECT idusuario, contrasena_hash, rol, activo, fecha_reactivacion
-            FROM usuarios WHERE idusuario = ?
-        """, (idusuario,))
-        usuario = cursor.fetchone()
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("""
+                    SELECT idusuario, contrasena_hash, rol, activo, fecha_reactivacion
+                    FROM usuarios WHERE idusuario = :idusuario
+                """),
+                {"idusuario": idusuario}
+            )
+            usuario = result.fetchone()
 
         if usuario:
             activo = usuario[3]
@@ -78,22 +82,34 @@ def registrar_usuario():
             flash("❌ Las contraseñas no coinciden.", "danger")
             return redirect(url_for('auth.registrar_usuario'))
 
-        # Validar duplicado
-        cursor = conexion.cursor()
-        cursor.execute("SELECT idusuario FROM usuarios WHERE idusuario = ?", (idusuario,))
-        if cursor.fetchone():
-            flash("❌ El ID de usuario ya existe.", "danger")
-            return redirect(url_for('auth.registrar_usuario'))
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            # Validar duplicado
+            result = conn.execute(
+                text("SELECT idusuario FROM usuarios WHERE idusuario = :idusuario"),
+                {"idusuario": idusuario}
+            )
+            if result.fetchone():
+                flash("❌ El ID de usuario ya existe.", "danger")
+                return redirect(url_for('auth.registrar_usuario'))
 
-        # Encriptar contraseña
-        contrasena_hash = bcrypt.hashpw(contrasena.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            # Encriptar contraseña
+            contrasena_hash = bcrypt.hashpw(contrasena.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-        # Insertar en la base de datos
-        cursor.execute("""
-            INSERT INTO usuarios (idusuario, nombres, apellidos, contrasena_hash, rol, activo, fecha_reactivacion)
-            VALUES (?, ?, ?, ?, ?, 1, GETDATE())
-        """, (idusuario, nombres, apellidos, contrasena_hash, rol))
-        conexion.commit()
+            # Insertar usuario
+            conn.execute(
+                text("""
+                    INSERT INTO usuarios (idusuario, nombres, apellidos, contrasena_hash, rol, activo, fecha_reactivacion)
+                    VALUES (:idusuario, :nombres, :apellidos, :contrasena_hash, :rol, 1, GETDATE())
+                """),
+                {
+                    "idusuario": idusuario,
+                    "nombres": nombres,
+                    "apellidos": apellidos,
+                    "contrasena_hash": contrasena_hash,
+                    "rol": rol
+                }
+            )
 
         flash(f"✅ Usuario '{idusuario}' registrado correctamente.", "success")
         return redirect(url_for('gestionar_usuarios'))
