@@ -110,6 +110,9 @@ def home():
 def cotizacion():
     if 'idusuario' not in session:
         return redirect(url_for('auth.login'))
+    
+    if request.method == 'GET':
+        session['hora_inicio_cotizacion'] = datetime.now()
 
     materiales_por_etapa = {
         'acero': ['acero_columna'],
@@ -259,6 +262,12 @@ def guardar_cotizacion():
 # Guardar el ID en sesión para que lo use /resultado
         session['cotizacion_guardada'] = True
         session['ultimo_idcotizacion'] = idcotizacion
+        hora_inicio = session.get('hora_inicio_cotizacion')
+        hora_fin = datetime.now()
+        if hora_inicio:
+            registrar_indicadores(idcotizacion, hora_inicio, hora_fin)
+        else:
+            print("⚠️ No se encontró hora de inicio en la sesión.")
         return redirect(url_for('resultado_cotizacion'))
 
 
@@ -541,6 +550,63 @@ def resultado_cotizacion():
 # ------------------- REGISTRO DE BLUEPRINT -------------------
 from auth import auth_bp
 app.register_blueprint(auth_bp)
+
+
+def registrar_indicadores(idcotizacion, hora_inicio, hora_fin):
+    with engine.connect() as conn:
+        detalles = conn.execute(
+            text("""
+                SELECT dc.material, dc.cantidad, dc.costo_estimado, m.idmaterial, cr.precio_real
+                FROM detalle_cotizacion dc
+                JOIN materiales m ON LOWER(m.nombrematerial) LIKE '%' + REPLACE(LOWER(dc.material), '_', ' ') + '%'
+                JOIN costos_reales cr ON m.idmaterial = cr.idmaterial
+                WHERE dc.idcotizacion = :id
+            """),
+            {"id": idcotizacion}
+        ).fetchall()
+
+        estimado_total = 0.0
+        real_total = 0.0
+
+        for fila in detalles:
+            cantidad = fila.cantidad
+            estimado = fila.costo_estimado
+            real_unitario = fila.precio_real
+
+            estimado_total += estimado
+            real_total += cantidad * real_unitario
+
+        if real_total == 0:
+            print("⚠️ No se puede registrar indicadores: total real es 0")
+            return
+
+        tiempo = (hora_fin - hora_inicio).total_seconds()
+        error = abs(estimado_total - real_total) / real_total * 100
+        precision = (1 - abs(estimado_total - real_total) / max(estimado_total, real_total)) * 100
+
+        conn.execute(
+            text("""
+                INSERT INTO indicadores_cotizacion (
+                    idcotizacion, hora_inicio, hora_fin, tiempo_segundos,
+                    estimado_total, real_total, error_porcentual, precision
+                ) VALUES (
+                    :idcotizacion, :hora_inicio, :hora_fin, :tiempo,
+                    :estimado_total, :real_total, :error, :precision
+                )
+            """),
+            {
+                "idcotizacion": idcotizacion,
+                "hora_inicio": hora_inicio,
+                "hora_fin": hora_fin,
+                "tiempo": tiempo,
+                "estimado_total": estimado_total,
+                "real_total": real_total,
+                "error": round(error, 2),
+                "precision": round(precision, 2)
+            }
+        )
+
+        print(f"✅ Indicadores registrados para cotización {idcotizacion}")
 
 # ------------------- RUN -------------------
 if __name__ == '__main__':
