@@ -583,6 +583,7 @@ def registrar_indicadores(idcotizacion, hora_inicio, hora_fin):
         tiempo = (hora_fin - hora_inicio).total_seconds()
         error = abs(estimado_total - real_total) / real_total * 100
         precision = (1 - abs(estimado_total - real_total) / max(estimado_total, real_total)) * 100
+        print(f"➡️ Registrando indicadores para cotización {idcotizacion}")
 
         conn.execute(
             text("""
