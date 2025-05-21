@@ -265,7 +265,9 @@ def guardar_cotizacion():
         hora_inicio = session.get('hora_inicio_cotizacion')
         hora_fin = datetime.now()
         if hora_inicio:
+            print(f"➡️ Llamando a función registrar_indicadores para ID {idcotizacion}")
             registrar_indicadores(idcotizacion, hora_inicio, hora_fin)
+
         else:
             print("⚠️ No se encontró hora de inicio en la sesión.")
         return redirect(url_for('resultado_cotizacion'))
