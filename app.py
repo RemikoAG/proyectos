@@ -560,8 +560,8 @@ def registrar_indicadores(idcotizacion, hora_inicio, hora_fin):
         detalles = conn.execute(
             text("""
                 SELECT dc.material, dc.cantidad, dc.costo_estimado, dc.idmaterial, cr.precio_real
-                 FROM detalle_cotizacion dc
-                 JOIN costos_reales cr ON dc.idmaterial = cr.idmaterial
+                FROM detalle_cotizacion dc
+                LEFT JOIN costos_reales cr ON dc.idmaterial = cr.idmaterial
                 WHERE dc.idcotizacion = :id
             """),
             {"id": idcotizacion}
@@ -571,12 +571,11 @@ def registrar_indicadores(idcotizacion, hora_inicio, hora_fin):
         real_total = 0.0
 
         for fila in detalles:
-            print("🔍 Fila encontrada:", fila)
+            print(f"🔍 REGISTRO fila => material: {fila.material}, cantidad: {fila.cantidad}, estimado: {fila.costo_estimado}, idmaterial: {fila.idmaterial}, precio_real: {fila.precio_real}")
+
             cantidad = fila.cantidad
             estimado = fila.costo_estimado
-            real_unitario = fila.precio_real
-
-            print(f"📌 cantidad={cantidad}, estimado={estimado}, real_unitario={real_unitario}")
+            real_unitario = fila.precio_real or 0  # Evita errores si viene None
 
             estimado_total += estimado
             real_total += cantidad * real_unitario
@@ -613,6 +612,7 @@ def registrar_indicadores(idcotizacion, hora_inicio, hora_fin):
         )
 
         print(f"✅ Indicadores registrados para cotización {idcotizacion}")
+
 
 # ------------------- RUN -------------------
 if __name__ == '__main__':
