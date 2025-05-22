@@ -4,7 +4,7 @@ from sqlalchemy import text
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import requests
 import base64
@@ -112,7 +112,7 @@ def cotizacion():
         return redirect(url_for('auth.login'))
     
     if request.method == 'GET':
-        session['hora_inicio_cotizacion'] = datetime.now()
+        session['hora_inicio_cotizacion'] = datetime.now(timezone.utc)
 
     materiales_por_etapa = {
         'acero': ['acero_columna'],
@@ -264,7 +264,7 @@ def guardar_cotizacion():
         session['cotizacion_guardada'] = True
         session['ultimo_idcotizacion'] = idcotizacion
         hora_inicio = session.get('hora_inicio_cotizacion')
-        hora_fin = datetime.now()
+        hora_fin = datetime.now(timezone.utc)
         if hora_inicio:
             print(f"➡️ Llamando a función registrar_indicadores para ID {idcotizacion}")
             registrar_indicadores(idcotizacion, hora_inicio, hora_fin, conn)
