@@ -229,28 +229,29 @@ def guardar_cotizacion():
                 total_etapa = costo_estimado + mano_obra
                 etapa_nombre = etapa.replace("_", " ").title()
 
+                id_material = asignar_id_material(material)  # ✅ Añade esto antes del INSERT
                 conn.execute(
                     text("""
-                        INSERT INTO detalle_cotizacion (
-                            idcotizacion, etapa, material, cantidad,
-                            costo_estimado, mano_obra, total_etapa
-                        )
-                        VALUES (
-                            :idcotizacion, :etapa, :material, :cantidad,
-                            :costo_estimado, :mano_obra, :total_etapa
-                        )
-                    """),
-                    {
-                        "idcotizacion": idcotizacion,
-                        "etapa": etapa_nombre,
-                        "material": material,
-                        "cantidad": cantidad,
-                        "costo_estimado": costo_estimado,
-                        "mano_obra": mano_obra,
-                        "total_etapa": total_etapa
-                    }
-                )
-
+                         INSERT INTO detalle_cotizacion (
+                         idcotizacion, etapa, material, cantidad,
+                         costo_estimado, mano_obra, total_etapa, idmaterial
+                         )
+                         VALUES (
+                         :idcotizacion, :etapa, :material, :cantidad,
+                         :costo_estimado, :mano_obra, :total_etapa, :idmaterial
+                         )
+                         """),
+                         {
+                             "idcotizacion": idcotizacion,
+                             "etapa": etapa_nombre,
+                             "material": material,
+                             "cantidad": cantidad,
+                             "costo_estimado": costo_estimado,
+                             "mano_obra": mano_obra,
+                             "total_etapa": total_etapa,
+                             "idmaterial": id_material  # ✅ Aquí lo pasas
+                             }
+                             )
                 suma += costo_estimado
                 costos[material] = costo_estimado
                 cantidades[material] = cantidad
@@ -558,10 +559,9 @@ def registrar_indicadores(idcotizacion, hora_inicio, hora_fin):
     with engine.connect() as conn:
         detalles = conn.execute(
             text("""
-                SELECT dc.material, dc.cantidad, dc.costo_estimado, m.idmaterial, cr.precio_real
-                FROM detalle_cotizacion dc
-                JOIN materiales m ON LOWER(m.nombrematerial) LIKE '%' + REPLACE(LOWER(dc.material), '_', ' ') + '%'
-                JOIN costos_reales cr ON m.idmaterial = cr.idmaterial
+                SELECT dc.material, dc.cantidad, dc.costo_estimado, dc.idmaterial, cr.precio_real
+                 FROM detalle_cotizacion dc
+                 JOIN costos_reales cr ON dc.idmaterial = cr.idmaterial
                 WHERE dc.idcotizacion = :id
             """),
             {"id": idcotizacion}
