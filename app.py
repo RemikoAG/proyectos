@@ -560,9 +560,9 @@ def registrar_indicadores(idcotizacion, hora_inicio, hora_fin):
         detalles = conn.execute(
             text("""
                  SELECT dc.material, dc.cantidad, dc.costo_estimado, dc.idmaterial,
-                        (SELECT cr.precio_real
-                         FROM costos_reales cr
-                         WHERE cr.idmaterial = dc.idmaterial) AS precio_real
+                        (SELECT TOP 1 cr.precio_real
+                        FROM costos_reales cr
+                        WHERE cr.idmaterial = dc.idmaterial) AS precio_real
                  FROM detalle_cotizacion dc
                  WHERE dc.idcotizacion = :id
             """),
