@@ -559,15 +559,17 @@ def registrar_indicadores(idcotizacion, hora_inicio, hora_fin):
     with engine.connect() as conn:
         detalles = conn.execute(
             text("""
-                 SELECT dc.material, dc.cantidad, dc.costo_estimado, dc.idmaterial,
-                        (SELECT TOP 1 cr.precio_real
-                        FROM costos_reales cr
-                        WHERE cr.idmaterial = dc.idmaterial) AS precio_real
-                 FROM detalle_cotizacion dc
-                 WHERE dc.idcotizacion = :id
+                SELECT dc.material, dc.cantidad, dc.costo_estimado, dc.idmaterial, cr.precio_real
+                FROM detalle_cotizacion dc
+                LEFT JOIN costos_reales cr ON cr.idmaterial = dc.idmaterial
+                WHERE dc.idcotizacion = :id
             """),
             {"id": idcotizacion}
         ).fetchall()
+        if not detalles:
+            print("⚠️ No se obtuvieron detalles para esta cotización")
+
+
 
 
         estimado_total = 0.0
