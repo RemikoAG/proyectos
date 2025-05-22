@@ -267,7 +267,8 @@ def guardar_cotizacion():
         hora_fin = datetime.now()
         if hora_inicio:
             print(f"➡️ Llamando a función registrar_indicadores para ID {idcotizacion}")
-            registrar_indicadores(idcotizacion, hora_inicio, hora_fin)
+            registrar_indicadores(idcotizacion, hora_inicio, hora_fin, conn)
+
 
         else:
             print("⚠️ No se encontró hora de inicio en la sesión.")
@@ -554,69 +555,65 @@ def resultado_cotizacion():
 from auth import auth_bp
 app.register_blueprint(auth_bp)
 
+def registrar_indicadores(idcotizacion, hora_inicio, hora_fin, conn):
+    detalles = conn.execute(
+        text("""
+             SELECT dc.material, dc.cantidad, dc.costo_estimado, dc.idmaterial,
+                    (SELECT TOP 1 cr.precio_real
+                     FROM costos_reales cr
+                     WHERE cr.idmaterial = dc.idmaterial) AS precio_real
+             FROM detalle_cotizacion dc
+             WHERE dc.idcotizacion = :id
+        """),
+        {"id": idcotizacion}
+    ).fetchall()
 
-def registrar_indicadores(idcotizacion, hora_inicio, hora_fin):
-    with engine.connect() as conn:
-        detalles = conn.execute(
-            text("""
-                SELECT dc.material, dc.cantidad, dc.costo_estimado, dc.idmaterial, cr.precio_real
-                FROM detalle_cotizacion dc
-                LEFT JOIN costos_reales cr ON cr.idmaterial = dc.idmaterial
-                WHERE dc.idcotizacion = :id
-            """),
-            {"id": idcotizacion}
-        ).fetchall()
-        if not detalles:
-            print("⚠️ No se obtuvieron detalles para esta cotización")
+    if not detalles:
+        print("⚠️ No se obtuvieron detalles para esta cotización")
+        print("⚠️ No se puede registrar indicadores: total real es 0")
+        return
 
+    estimado_total = 0.0
+    real_total = 0.0
 
+    for fila in detalles:
+        cantidad = fila.cantidad
+        estimado = fila.costo_estimado
+        real_unitario = fila.precio_real or 0
+        estimado_total += estimado
+        real_total += cantidad * real_unitario
 
+    if real_total == 0:
+        print("⚠️ No se puede registrar indicadores: total real es 0")
+        return
 
-        estimado_total = 0.0
-        real_total = 0.0
+    tiempo = (hora_fin - hora_inicio).total_seconds()
+    error = abs(estimado_total - real_total) / real_total * 100
+    precision = (1 - abs(estimado_total - real_total) / max(estimado_total, real_total)) * 100
 
-        for fila in detalles:
-            print(f"🔍 REGISTRO fila => material: {fila.material}, cantidad: {fila.cantidad}, estimado: {fila.costo_estimado}, idmaterial: {fila.idmaterial}, precio_real: {fila.precio_real}")
+    conn.execute(
+        text("""
+            INSERT INTO indicadores_cotizacion (
+                idcotizacion, hora_inicio, hora_fin, tiempo_segundos,
+                estimado_total, real_total, error_porcentual, precision
+            ) VALUES (
+                :idcotizacion, :hora_inicio, :hora_fin, :tiempo,
+                :estimado_total, :real_total, :error, :precision
+            )
+        """),
+        {
+            "idcotizacion": idcotizacion,
+            "hora_inicio": hora_inicio,
+            "hora_fin": hora_fin,
+            "tiempo": tiempo,
+            "estimado_total": estimado_total,
+            "real_total": real_total,
+            "error": round(error, 2),
+            "precision": round(precision, 2)
+        }
+    )
 
-            cantidad = fila.cantidad
-            estimado = fila.costo_estimado
-            real_unitario = fila.precio_real or 0  # Evita errores si viene None
-
-            estimado_total += estimado
-            real_total += cantidad * real_unitario
-
-        if real_total == 0:
-            print("⚠️ No se puede registrar indicadores: total real es 0")
-            return
-
-        tiempo = (hora_fin - hora_inicio).total_seconds()
-        error = abs(estimado_total - real_total) / real_total * 100
-        precision = (1 - abs(estimado_total - real_total) / max(estimado_total, real_total)) * 100
-        print(f"➡️ Registrando indicadores para cotización {idcotizacion}")
-
-        conn.execute(
-            text("""
-                INSERT INTO indicadores_cotizacion (
-                    idcotizacion, hora_inicio, hora_fin, tiempo_segundos,
-                    estimado_total, real_total, error_porcentual, precision
-                ) VALUES (
-                    :idcotizacion, :hora_inicio, :hora_fin, :tiempo,
-                    :estimado_total, :real_total, :error, :precision
-                )
-            """),
-            {
-                "idcotizacion": idcotizacion,
-                "hora_inicio": hora_inicio,
-                "hora_fin": hora_fin,
-                "tiempo": tiempo,
-                "estimado_total": estimado_total,
-                "real_total": real_total,
-                "error": round(error, 2),
-                "precision": round(precision, 2)
-            }
-        )
-
-        print(f"✅ Indicadores registrados para cotización {idcotizacion}")
+    print(f"✅ Indicadores registrados para cotización {idcotizacion}")
 
 
 # ------------------- RUN -------------------
