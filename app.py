@@ -571,9 +571,12 @@ def registrar_indicadores(idcotizacion, hora_inicio, hora_fin):
         real_total = 0.0
 
         for fila in detalles:
+            print("🔍 Fila encontrada:", fila)
             cantidad = fila.cantidad
             estimado = fila.costo_estimado
             real_unitario = fila.precio_real
+
+            print(f"📌 cantidad={cantidad}, estimado={estimado}, real_unitario={real_unitario}")
 
             estimado_total += estimado
             real_total += cantidad * real_unitario
