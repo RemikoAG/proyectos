@@ -577,11 +577,13 @@ def registrar_indicadores(idcotizacion, hora_inicio, hora_fin, conn):
     real_total = 0.0
 
     for fila in detalles:
+        print(f"🔍 REGISTRO fila => material: {fila.material}, cantidad: {fila.cantidad}, estimado: {fila.costo_estimado}, idmaterial: {fila.idmaterial}, precio_real: {fila.precio_real}")
         cantidad = fila.cantidad
-        estimado = fila.costo_estimado
+        estimado = float(fila.costo_estimado)
         real_unitario = fila.precio_real or 0
+
         estimado_total += estimado
-        real_total += cantidad * real_unitario
+        real_unitario = float(fila.precio_real or 0)
 
     if real_total == 0:
         print("⚠️ No se puede registrar indicadores: total real es 0")
