@@ -5,10 +5,8 @@
 
 {% block content %}
 <h1 class="login-title">BIENVENIDO</h1>
-
 <div class="login-box">
   <h2>Inicie sesión para continuar</h2>
-
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="flash-container">
