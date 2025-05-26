@@ -403,16 +403,7 @@ body.home-body {
   color: #000;
 }
 
-.login-box {
-  background-color: #c9c5c4;
-  max-width: 400px;
-  margin: 30px auto;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  text-align: center;
-  border: 1px solid #777;
-}
+
 
 .login-box h2 {
   font-size: 18px;
@@ -531,4 +522,26 @@ body.home-body {
 .main-content {
   margin-left: 220px; /* mismo valor que el ancho del sidebar */
   padding: 20px;
+}
+
+/* Centrado específico para login y home con el sidebar */
+body.login-body,
+body.home-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  padding: 0;
+  margin-left: 220px; /* Ajusta para que no se superponga con el sidebar */
+}
+
+.central-container,
+.login-box {
+  width: 100%;
+  max-width: 600px;
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  text-align: center;
 }
