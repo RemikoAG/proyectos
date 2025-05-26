@@ -7,32 +7,23 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 
-  <!-- Encabezado siempre visible -->
-  <header>
-    <div class="header-container">
-      <h1>COTICONSTRUYE</h1>
-
-      <!-- Botones visibles solo si no estás en login -->
-      {% if request.endpoint not in ['auth.login', 'home'] %}
-      <nav class="nav-button-bar">
-        {% if session.get('idusuario') %}
-          <a href="{{ url_for('home') }}" class="nav-btn">Inicio</a>
-          <a href="{{ url_for('cotizacion') }}" class="nav-btn">Cotización</a>
-          {% if session.get('rol') == 'admin' %}
-            <a href="{{ url_for('admin_panel') }}" class="nav-btn">Panel Admin</a>
-            <a href="{{ url_for('gestionar_usuarios') }}" class="nav-btn">Usuarios</a>
-          {% endif %}
-          <a href="{{ url_for('auth.logout') }}" class="nav-btn">Cerrar sesión</a>
-        {% else %}
-          <a href="{{ url_for('auth.login') }}" class="nav-btn">Iniciar sesión</a>
-        {% endif %}
-      </nav>
+  {% if session.get('idusuario') %}
+  <!-- Sidebar lateral -->
+  <aside class="sidebar">
+    <h2>COTICONSTRUYE</h2>
+    <nav>
+      <a href="{{ url_for('home') }}">Inicio</a>
+      <a href="{{ url_for('cotizacion') }}">Cotización</a>
+      {% if session.get('rol') == 'admin' %}
+        <a href="{{ url_for('admin_panel') }}">Panel Admin</a>
+        <a href="{{ url_for('gestionar_usuarios') }}">Usuarios</a>
       {% endif %}
-    </div>
-    <hr>
-  </header>
+      <a href="{{ url_for('auth.logout') }}">Cerrar sesión</a>
+    </nav>
+  </aside>
+  {% endif %}
 
-  <main>
+  <main class="main-content">
     {% block content %}{% endblock %}
   </main>
 
