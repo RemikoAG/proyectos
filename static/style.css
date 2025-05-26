@@ -301,7 +301,7 @@ input:checked + .slider:before {
 /* === HOME === */
 .home-container {
   max-width: 800px;
-  margin: 40px 300px 40px 5px;
+  margin: 40px 30px 40px 5px;
   padding: 30px;
   background-color: #ffffff;
   border-radius: 10px;
@@ -377,7 +377,7 @@ input:checked + .slider:before {
 .login-box {
   background-color: #c9c5c4;
   max-width: 400px;
-  margin: 30px 450px 30px 5px;
+  margin: 30px 45px 30px 5px;
   padding: 30px;
   border-radius: 15px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
