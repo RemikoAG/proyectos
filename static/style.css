@@ -360,11 +360,16 @@ input:checked + .slider:before {
 
 /* === LOGIN CUSTOM === */
 .login-body {
-  background-color: #d5cec3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* altura total de la ventana */
+  background-color: #d5cec3; /* color de fondo */
   margin: 0;
   padding: 0;
   font-family: 'Segoe UI', sans-serif;
 }
+
 
 .login-title {
   text-align: center;
