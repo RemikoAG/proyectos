@@ -524,15 +524,15 @@ body.home-body {
   padding: 20px;
 }
 
-/* Centrado específico para login y home con el sidebar */
-body.login-body,
-body.home-body {
+/* Centrado para login y home con el sidebar */
+.page-container {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  padding: 0;
-  margin-left: 220px; /* Ajusta para que no se superponga con el sidebar */
+  min-height: 100vh;
+  margin-left: 220px; /* Ajusta para el sidebar */
+  box-sizing: border-box;
 }
 
 .central-container,
@@ -544,4 +544,10 @@ body.home-body {
   border-radius: 10px;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
   text-align: center;
+}
+
+footer {
+  text-align: center;
+  width: 100%;
+  margin-top: 20px;
 }
