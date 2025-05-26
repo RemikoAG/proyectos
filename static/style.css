@@ -374,6 +374,7 @@ input:checked + .slider:before {
   color: #000;
 }
 
+
 .login-box {
   background-color: #c9c5c4;
   max-width: 400px;
