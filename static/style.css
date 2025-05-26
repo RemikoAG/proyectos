@@ -299,33 +299,15 @@ input:checked + .slider:before {
 }
 
 /* === HOME === */
-body.login-body,
-body.home-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  padding: 0; /* para que no afecte el centrado */
-}
-
-.central-container {
-  max-width: 600px;
-  background-color: #ffffff;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
-  text-align: center;
-}
-
 .home-container {
   max-width: 800px;
+  margin: 40px auto;
+  padding: 30px;
   background-color: #ffffff;
   border-radius: 10px;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
   text-align: center;
-  padding: 30px;
 }
-
 
 .home-container p {
   font-size: 1.05rem;
@@ -378,22 +360,11 @@ body.home-body {
 
 /* === LOGIN CUSTOM === */
 .login-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh; /* altura total de la ventana */
+  background-color: #d5cec3;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
 }
-
-.login-box {
-  background-color: #c9c5c4;
-  max-width: 400px;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  text-align: center;
-  border: 1px solid #777;
-}
-
 
 .login-title {
   text-align: center;
@@ -403,7 +374,16 @@ body.home-body {
   color: #000;
 }
 
-
+.login-box {
+  background-color: #c9c5c4;
+  max-width: 400px;
+  margin: 30px auto;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  text-align: center;
+  border: 1px solid #777;
+}
 
 .login-box h2 {
   font-size: 18px;
