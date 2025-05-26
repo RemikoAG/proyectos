@@ -299,15 +299,23 @@ input:checked + .slider:before {
 }
 
 /* === HOME === */
+/* CENTRAR HOME */
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
 .home-container {
   max-width: 800px;
-  margin: 40px auto;
-  padding: 30px;
   background-color: #ffffff;
   border-radius: 10px;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
   text-align: center;
+  padding: 30px;
 }
+
 
 .home-container p {
   font-size: 1.05rem;
@@ -360,11 +368,22 @@ input:checked + .slider:before {
 
 /* === LOGIN CUSTOM === */
 .login-body {
-  background-color: #d5cec3;
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* altura total de la ventana */
 }
+
+.login-box {
+  background-color: #c9c5c4;
+  max-width: 400px;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  text-align: center;
+  border: 1px solid #777;
+}
+
 
 .login-title {
   text-align: center;

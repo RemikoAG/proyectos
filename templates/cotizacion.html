@@ -5,6 +5,8 @@
 {% block content %}
 <h1>Formulario de Cotización</h1>
 
+<h2>Por favor, selecciona una o las etapas de construccion que desea cotizar</h2>
+
 <form id="formularioCotizacion" action="{{ url_for('cotizacion') }}" method="POST" onsubmit="return validarFormulario();">
   {% set datos = datos if datos is defined else {} %}
   <div class="accordion-container">
