@@ -299,12 +299,22 @@ input:checked + .slider:before {
 }
 
 /* === HOME === */
-/* CENTRAR HOME */
-body {
+body.login-body,
+body.home-body {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
+  padding: 0; /* para que no afecte el centrado */
+}
+
+.central-container {
+  max-width: 600px;
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  text-align: center;
 }
 
 .home-container {
